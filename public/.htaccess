@@ -1,0 +1,17 @@
+RewriteEngine On
+RewriteBase /Brice/
+
+# Prevent direct access to files/directories outside public
+RewriteCond %{REQUEST_URI} !^/Brice/public/
+RewriteRule ^(.*)$ /Brice/public/$1 [L,R=301]
+
+# Handle Front Controller pattern
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]
+
+# Prevent direct access to .htaccess
+<Files .htaccess>
+    Order allow,deny
+    Deny from all
+</Files>

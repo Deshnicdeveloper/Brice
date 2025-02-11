@@ -1,0 +1,11 @@
+/vendor/
+.env
+.env.*
+!.env.example
+.phpunit.result.cache
+/logs/*
+!logs/.gitkeep
+/public/uploads/*
+!public/uploads/.gitkeep
+composer.lock
+.DS_Store 

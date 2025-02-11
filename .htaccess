@@ -1,0 +1,15 @@
+RewriteEngine On
+RewriteBase /Brice/
+
+# Redirect all requests to public directory
+RewriteCond %{REQUEST_URI} !^/Brice/public/
+RewriteRule ^(.*)$ public/$1 [L]
+
+# Prevent directory listing
+Options -Indexes
+
+# Deny access to sensitive files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch> 

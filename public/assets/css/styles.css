@@ -1,0 +1,6 @@
+/* Custom styles */
+.bg-gradient-to-b {
+    background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+}
+
+/* Add more custom styles here */ 
