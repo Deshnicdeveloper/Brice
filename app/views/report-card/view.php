@@ -99,14 +99,11 @@ ob_start();
 
         <!-- Action Buttons -->
         <div class="p-6 flex justify-end space-x-4">
-            <a href="<?= url('report-card/download/' . $pupil['pupil_id'] . '/' . $term) ?>" 
-               class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                Download Report Card
-            </a>
+            
             <a href="<?= url('report-card/print/' . $pupil['pupil_id'] . '/' . $term) ?>" 
-               class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" 
+               class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700" 
                target="_blank">
-                Print
+                Print / Download ReportCard
             </a>
         </div>
     </div>

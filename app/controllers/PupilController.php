@@ -33,6 +33,7 @@ class PupilController {
         $classList = $this->pupil->getClassList();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // cleaning the data
             $sanitizedData = [
                 'first_name' => SanitizationHelper::sanitizeName($_POST['first_name']),
                 'last_name' => SanitizationHelper::sanitizeName($_POST['last_name']),
@@ -42,6 +43,7 @@ class PupilController {
                 'class' => SanitizationHelper::sanitize($_POST['class'])
             ];
 
+            // validating the data
             $rules = [
                 'first_name' => ['required', ['min', 2], ['max', 50]],
                 'last_name' => ['required', ['min', 2], ['max', 50]],
@@ -51,15 +53,18 @@ class PupilController {
                 'class' => ['required', ['in', array_keys($this->pupil->getClassList())]]
             ];
 
+            // if the data is valid, create the pupil
             if ($this->validator->validate($sanitizedData, $rules)) {
                 try {
+                    // create the pupil
                     $pupilId = $this->pupil->createPupil($sanitizedData);
                     if ($pupilId) {
                         ErrorHandler::setSuccess("Pupil registered successfully with ID: " . $pupilId);
                         header('Location: /admin/pupils');
                         exit;
                     }
-                } catch (\PDOException $e) {
+                        } catch (\PDOException $e) {
+                 // log the error
                     ErrorHandler::logError("Failed to create pupil", [
                         'error' => $e->getMessage(),
                         'data' => $sanitizedData
@@ -73,7 +78,7 @@ class PupilController {
 
         require __DIR__ . '/../views/admin/pupils/add.php';
     }
-
+// edit the pupil
     public function edit($id) {
         AuthHelper::requireRole('admin');
         $errors = [];
@@ -86,6 +91,7 @@ class PupilController {
             exit;
         }
 
+        // if the data is submitted, update the pupil
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sanitizedData = [
                 'first_name' => SanitizationHelper::sanitizeName($_POST['first_name']),
@@ -97,6 +103,7 @@ class PupilController {
                 'status' => SanitizationHelper::sanitize($_POST['status'])
             ];
 
+            // validating the data
             $rules = [
                 'first_name' => ['required', ['min', 2], ['max', 50]],
                 'last_name' => ['required', ['min', 2], ['max', 50]],
@@ -107,6 +114,7 @@ class PupilController {
                 'status' => ['required', ['in', ['active', 'inactive', 'graduated']]]
             ];
 
+            // if the data is valid, update the pupil
             if ($this->validator->validate($sanitizedData, $rules)) {
                 try {
                     if ($this->pupil->updatePupil($id, $sanitizedData)) {
@@ -115,6 +123,7 @@ class PupilController {
                         exit;
                     }
                 } catch (\PDOException $e) {
+                    // log the error
                     ErrorHandler::logError("Failed to update pupil", [
                         'error' => $e->getMessage(),
                         'data' => $sanitizedData
@@ -128,7 +137,7 @@ class PupilController {
 
         require __DIR__ . '/../views/admin/pupils/edit.php';
     }
-
+// view the pupil       
     public function view($id) {
         AuthHelper::requireRole(['admin', 'teacher', 'parent']);
         

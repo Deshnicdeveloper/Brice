@@ -41,12 +41,26 @@ class Subject {
 
     public function getSubjectById($id) {
         try {
-            $sql = "SELECT * FROM subjects WHERE subject_id = ?";
+            $sql = "SELECT subject_id, name, code, class, coefficient, category 
+                    FROM subjects 
+                    WHERE subject_id = ? 
+                    LIMIT 1";
+                    
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id]);
-            return $stmt->fetch();
+            $stmt->execute([(int)$id]);
+            
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$result) {
+                throw new \Exception("Subject with ID {$id} not found");
+            }
+            
+            return $result;
         } catch (\PDOException $e) {
-            ErrorHandler::logError("Database error in getSubjectById: " . $e->getMessage());
+            ErrorHandler::logError("Database error in getSubjectById", [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
             throw $e;
         }
     }

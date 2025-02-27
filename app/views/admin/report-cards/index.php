@@ -8,15 +8,9 @@ ob_start();
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Report Cards Management</h1>
+                <h1 class="text-2xl font-bold text-gray-800">EDUCARE's Report Cards Management</h1>
                 <p class="text-gray-600 mt-1">Generate and manage student report cards</p>
             </div>
-            <?php if (!empty($class)): ?>
-                <button onclick="generateAllReportCards()" 
-                        class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                    Generate All Report Cards
-                </button>
-            <?php endif; ?>
         </div>
     </div>
 
@@ -123,12 +117,12 @@ ob_start();
                                     <?= htmlspecialchars($pupil['first_name'] . ' ' . $pupil['last_name']) ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                    <span class="<?= ($pupil['term_average'] ?? 0) < 10 ? 'text-red-600' : 'text-blue-600' ?> font-medium">
-                                        <?= number_format($pupil['term_average'] ?? 0, 2) ?>
+                                    <span class="<?= ($pupil['total_average'] ?? 0) < 10 ? 'text-red-600' : 'text-blue-600' ?> font-medium">
+                                        <?= number_format($pupil['total_average'] ?? 0, 2) ?>
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
-                                    <?= $pupil['position'] ?? 'N/A' ?>
+                                    <?= $pupil['rank'] ?? 'N/A' ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -141,10 +135,7 @@ ob_start();
                                        class="text-blue-600 hover:text-blue-900 mr-4">
                                         View
                                     </a>
-                                    <a href="<?= url('report-card/download/' . $pupil['pupil_id'] . '/' . $term) ?>" 
-                                       class="text-green-600 hover:text-green-900 mr-4">
-                                        Download
-                                    </a>
+                                    
                                     <a href="<?= url('report-card/print/' . $pupil['pupil_id'] . '/' . $term) ?>" 
                                        target="_blank"
                                        class="text-gray-600 hover:text-gray-900">

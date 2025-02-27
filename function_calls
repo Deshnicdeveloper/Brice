@@ -1,0 +1,194 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Models\ReportCard;
+use App\Models\Pupil;
+use App\Models\Result;
+use App\Models\Subject;
+use App\Models\MarkingPeriod;
+use App\Helpers\AuthHelper;
+use App\Helpers\PDFGenerator;
+use App\Helpers\ErrorHandler;
+require_once __DIR__ . '/../../vendor/tecnickcom/tcpdf/tcpdf.php';
+use TCPDF;
+
+class ReportCardController
+{
+    public function download($pupilId, $term)
+    {
+        try {
+            // 1. First collect all required data
+            $pupil = $this->pupil->getPupilById($pupilId);
+            if (!$pupil) {
+                throw new \Exception("Student not found");
+            }
+
+            // Get academic year from current date if not in marking period
+            $academicYear = date('Y');
+            
+            // 2. Get student's results
+            $results = $this->result->getPupilResults($pupilId, $academicYear, $term);
+            
+            // 3. Calculate statistics
+            $data = [
+                'pupil' => $pupil,
+                'academic_year' => $academicYear,
+                'term' => $term,
+                'subjects' => [],
+                'class_average' => 0,
+                'highest_average' => 0,
+                'lowest_average' => 0,
+                'rank' => 0,
+                'class_size' => 0
+            ];
+
+            // Process results
+            foreach ($results as $result) {
+                $data['subjects'][] = [
+                    'subject' => $result['subject_name'],
+                    'coefficient' => $result['coefficient'],
+                    'first_sequence' => $result['first_sequence_marks'],
+                    'second_sequence' => $result['second_sequence_marks'],
+                    'exam' => $result['exam_marks'],
+                    'average' => ($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3,
+                    'weighted_mark' => (($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3) * $result['coefficient']
+                ];
+            }
+
+            // Calculate term average
+            $totalWeightedMarks = 0;
+            $totalCoefficients = 0;
+            foreach ($data['subjects'] as $subject) {
+                $totalWeightedMarks += $subject['weighted_mark'];
+                $totalCoefficients += $subject['coefficient'];
+            }
+            $data['term_average'] = $totalCoefficients > 0 ? $totalWeightedMarks / $totalCoefficients : 0;
+
+            // Get class statistics if available
+            if ($pupil['class']) {
+                $stats = $this->result->getClassStatistics($pupil['class'], $academicYear, $term);
+                if ($stats) {
+                    $data['class_average'] = $stats['average'];
+                    $data['highest_average'] = $stats['highest'];
+                    $data['lowest_average'] = $stats['lowest'];
+                }
+                $data['class_size'] = $this->pupil->getClassCount($pupil['class']);
+                $data['rank'] = $this->result->getPupilPosition($pupilId, $pupil['class'], $academicYear, $term);
+            }
+
+            // 4. Generate PDF
+            // Make sure no output has been sent
+            if (ob_get_length()) ob_clean();
+            if (headers_sent()) {
+                throw new \Exception("Headers already sent");
+            }
+
+            // Create PDF instance
+            $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+            // Set document information
+            $pdf->SetCreator('School Management System');
+            $pdf->SetAuthor('School Management System');
+            $pdf->SetTitle('Report Card');
+
+            // Set margins
+            $pdf->SetMargins(15, 15, 15);
+            $pdf->SetAutoPageBreak(TRUE, 15);
+
+            // Remove default header/footer
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+
+            // Add a page
+            $pdf->AddPage();
+
+            // Include the template
+            ob_start();
+            require __DIR__ . '/../views/admin/report-cards/pdf-template.php';
+            $html = ob_get_clean();
+
+            // Add content to PDF
+            $pdf->writeHTML($html, true, false, true, false, '');
+
+            // Output PDF
+            $pdf->Output('report_card.pdf', 'D');
+            exit;
+
+        } catch (\Exception $e) {
+            // Log the error
+            ErrorHandler::logError("Failed to generate report card", [
+                'error' => $e->getMessage(),
+                'pupil_id' => $pupilId,
+                'term' => $term
+            ]);
+
+            // Clear any output
+            if (ob_get_length()) ob_clean();
+
+            // Redirect with error message
+            $_SESSION['error'] = "Could not generate report card: " . $e->getMessage();
+            header('Location: ' . url('report-card/view/' . $pupilId . '/' . $term));
+            exit;
+        }
+    }
+
+    public function index() {
+        AuthHelper::requireRole('admin');
+        
+        try {
+            $class = $_GET['class'] ?? '';
+            $academicYear = $_GET['academic_year'] ?? date('Y');
+            $term = $_GET['term'] ?? 1;
+            
+            $classList = $this->pupil->getClassList(true);
+            $pupils = [];
+            
+            if ($class) {
+                $pupils = $this->pupil->getActiveStudentsByClass($class);
+                
+                // Calculate term average and position for each pupil
+                foreach ($pupils as &$pupil) {
+                    // Get pupil's results
+                    $results = $this->result->getPupilResults($pupil['pupil_id'], $academicYear, $term);
+                    
+                    // Calculate term average
+                    $totalWeightedMarks = 0;
+                    $totalCoefficients = 0;
+                    
+                    foreach ($results as $result) {
+                        $average = ($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3;
+                        $weightedMark = $average * $result['coefficient'];
+                        $totalWeightedMarks += $weightedMark;
+                        $totalCoefficients += $result['coefficient'];
+                    }
+                    
+                    $pupil['total_average'] = $totalCoefficients > 0 ? 
+                        $totalWeightedMarks / $totalCoefficients : 0;
+                        
+                    // Get pupil's position
+                    $pupil['rank'] = $this->result->getPupilPosition(
+                        $pupil['pupil_id'], 
+                        $class, 
+                        $academicYear, 
+                        $term
+                    );
+                }
+                
+                // Sort pupils by average in descending order
+                usort($pupils, function($a, $b) {
+                    return $b['total_average'] <=> $a['total_average'];
+                });
+            }
+            
+            require __DIR__ . '/../views/admin/report-cards/index.php';
+            
+        } catch (\Exception $e) {
+            ErrorHandler::logError("Failed to load report cards page", [
+                'error' => $e->getMessage()
+            ]);
+            $error = "Failed to load report cards";
+            require __DIR__ . '/../views/admin/report-cards/index.php';
+        }
+    }
+} 

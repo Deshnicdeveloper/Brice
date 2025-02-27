@@ -3,95 +3,103 @@ $title = 'Edit Subject';
 ob_start();
 ?>
 
-<div class="mb-6">
-    <a href="/admin/subjects" class="text-blue-600 hover:text-blue-900">← Back to Subjects</a>
-    <h2 class="text-xl font-semibold mt-4">
-        Edit Subject: <?= $subject['name'] ?>
-        <span class="text-gray-500">(<?= $subject['code'] ?>)</span>
-    </h2>
-</div>
-
-<?php if (isset($errors['database'])): ?>
-    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-        <?= $errors['database'] ?>
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6">
+        <a href="<?= url('admin/subjects') ?>" class="text-blue-600 hover:text-blue-900">← Back to Subjects</a>
+        <h2 class="text-2xl font-bold mt-4">Edit Subject</h2>
     </div>
-<?php endif; ?>
 
-<div class="bg-white rounded-lg shadow-md p-6">
-    <form method="POST" action="/admin/subjects/edit/<?= $subject['subject_id'] ?>" class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Name</label>
-                <input type="text" name="name" required
-                       value="<?= $_POST['name'] ?? $subject['name'] ?>"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <?php if (isset($errors['name'])): ?>
-                    <p class="mt-1 text-sm text-red-600"><?= $errors['name'][0] ?></p>
-                <?php endif; ?>
-            </div>
+    <?php if (!empty($errors)): ?>
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <?php foreach ($errors as $error): ?>
+                <p><?= $error[0] ?? $error ?></p>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Code</label>
-                <input type="text" name="code" required
-                       value="<?= $_POST['code'] ?? $subject['code'] ?>"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <?php if (isset($errors['code'])): ?>
-                    <p class="mt-1 text-sm text-red-600"><?= $errors['code'][0] ?></p>
-                <?php endif; ?>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Class</label>
-                <select name="class" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <?php foreach ($classList as $class => $label): ?>
-                        <option value="<?= $class ?>" 
-                                <?= $subject['class'] === $class ? 'selected' : '' ?>>
-                            <?= $label ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <?php if (isset($errors['class'])): ?>
-                    <p class="mt-1 text-sm text-red-600"><?= $errors['class'][0] ?></p>
-                <?php endif; ?>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Coefficient</label>
-                <input type="number" name="coefficient" required step="0.5" min="0.5" max="5"
-                       value="<?= $_POST['coefficient'] ?? $subject['coefficient'] ?>"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <?php if (isset($errors['coefficient'])): ?>
-                    <p class="mt-1 text-sm text-red-600"><?= $errors['coefficient'][0] ?></p>
-                <?php endif; ?>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Category</label>
-                <select name="category" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <?php foreach ($categories as $value => $label): ?>
-                        <option value="<?= $value ?>" 
-                                <?= $subject['category'] === $value ? 'selected' : '' ?>>
-                            <?= $label ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <?php if (isset($errors['category'])): ?>
-                    <p class="mt-1 text-sm text-red-600"><?= $errors['category'][0] ?></p>
-                <?php endif; ?>
-            </div>
+    <form method="POST" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+                Subject Name
+            </label>
+            <input type="text" 
+                   id="name" 
+                   name="name" 
+                   value="<?= htmlspecialchars($subject['name']) ?>" 
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                   required>
         </div>
 
-        <div class="flex justify-end space-x-4 mt-6">
-            <a href="/admin/subjects" 
-               class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                Cancel
-            </a>
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="code">
+                Subject Code
+            </label>
+            <input type="text" 
+                   id="code" 
+                   name="code" 
+                   value="<?= htmlspecialchars($subject['code']) ?>" 
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                   required>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="class">
+                Class
+            </label>
+            <select id="class" 
+                    name="class" 
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    required>
+                <?php foreach ($classList as $key => $value): ?>
+                    <option value="<?= htmlspecialchars($key) ?>" 
+                            <?= $key === $subject['class'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($value) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="coefficient">
+                Coefficient
+            </label>
+            <input type="number" 
+                   id="coefficient" 
+                   name="coefficient" 
+                   value="<?= htmlspecialchars($subject['coefficient']) ?>" 
+                   step="0.5" 
+                   min="0.5" 
+                   max="5"
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                   required>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="category">
+                Category
+            </label>
+            <select id="category" 
+                    name="category" 
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    required>
+                <?php foreach ($categories as $key => $value): ?>
+                    <option value="<?= htmlspecialchars($key) ?>" 
+                            <?= $key === $subject['category'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($value) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="flex items-center justify-between">
             <button type="submit" 
-                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                 Update Subject
             </button>
+            <a href="<?= url('admin/subjects') ?>" 
+               class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                Cancel
+            </a>
         </div>
     </form>
 </div>

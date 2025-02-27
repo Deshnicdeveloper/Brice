@@ -47,6 +47,9 @@ class Pupil {
 
             // Generate matricule
             $matricule = 'PUP' . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+
+             // Convert class ID to class name
+            $data['class'] = $classList[$data['class']] ?? $data['class']; 
             
             $sql = "INSERT INTO pupils (matricule, first_name, last_name, date_of_birth, 
                                       gender, parent_id, class, admission_date, status) 

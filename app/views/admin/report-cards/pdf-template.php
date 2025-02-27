@@ -63,7 +63,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="school-name">SCHOOL NAME</div>
+        <div class="school-name">EDUCARE</div>
         <div class="report-title">STUDENT REPORT CARD</div>
     </div>
 

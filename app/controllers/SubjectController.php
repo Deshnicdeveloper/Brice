@@ -92,53 +92,61 @@ class SubjectController {
 
     public function edit($id) {
         AuthHelper::requireRole('admin');
-        $errors = [];
-        $categories = $this->subject->getCategories();
-        $classList = (new \App\Models\Pupil())->getClassList();
-
-        $subject = $this->subject->getSubjectById($id);
-        if (!$subject) {
-            header('Location: /admin/subjects');
-            exit;
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $sanitizedData = [
-                'name' => SanitizationHelper::sanitize($_POST['name']),
-                'code' => SanitizationHelper::sanitize($_POST['code']),
-                'class' => SanitizationHelper::sanitize($_POST['class']),
-                'coefficient' => floatval($_POST['coefficient']),
-                'category' => SanitizationHelper::sanitize($_POST['category'])
-            ];
-
-            $rules = [
-                'name' => ['required', ['min', 2], ['max', 50]],
-                'code' => ['required', ['min', 2], ['max', 10], ['unique', 'subjects', 'code', $id]],
-                'class' => ['required', ['in', array_keys($classList)]],
-                'coefficient' => ['required', ['min', 0.5], ['max', 5]],
-                'category' => ['required', ['in', array_keys($categories)]]
-            ];
-
-            if ($this->validator->validate($sanitizedData, $rules)) {
-                try {
-                    if ($this->subject->updateSubject($id, $sanitizedData)) {
+        
+        try {
+            // Get subject data
+            $subject = $this->subject->getSubjectById($id);
+            
+            // Get supporting data
+            $categories = $this->subject->getCategories();
+            $classList = (new \App\Models\Pupil())->getClassList();
+            
+            $errors = [];
+            
+            // Handle form submission
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Sanitize input
+                $data = [
+                    'name' => SanitizationHelper::sanitize($_POST['name'] ?? ''),
+                    'code' => SanitizationHelper::sanitize($_POST['code'] ?? ''),
+                    'class' => SanitizationHelper::sanitize($_POST['class'] ?? ''),
+                    'coefficient' => floatval($_POST['coefficient'] ?? 1),
+                    'category' => SanitizationHelper::sanitize($_POST['category'] ?? '')
+                ];
+                
+                // Validate
+                $rules = [
+                    'name' => ['required', ['min', 2], ['max', 50]],
+                    'code' => ['required', ['min', 2], ['max', 10]],
+                    'class' => ['required'],
+                    'coefficient' => ['required', ['min', 0.5], ['max', 5]],
+                    'category' => ['required']
+                ];
+                
+                if ($this->validator->validate($data, $rules)) {
+                    if ($this->subject->updateSubject($id, $data)) {
                         ErrorHandler::setSuccess("Subject updated successfully");
-                        header('Location: /admin/subjects');
+                        header('Location: ' . url('admin/subjects'));
                         exit;
                     }
-                } catch (\Exception $e) {
-                    ErrorHandler::logError("Failed to update subject", [
-                        'error' => $e->getMessage(),
-                        'data' => $sanitizedData
-                    ]);
-                    $errors['database'] = "Failed to update subject. Please try again.";
+                    $errors['database'] = "Failed to update subject";
+                } else {
+                    $errors = $this->validator->getErrors();
                 }
-            } else {
-                $errors = $this->validator->getErrors();
             }
+            
+            // Display the form
+            require __DIR__ . '/../views/admin/subjects/edit.php';
+            
+        } catch (\Exception $e) {
+            ErrorHandler::logError("Error in subject edit", [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            ErrorHandler::setError('subject', $e->getMessage());
+            header('Location: ' . url('admin/subjects'));
+            exit;
         }
-
-        require __DIR__ . '/../views/admin/subjects/edit.php';
     }
 
     public function delete($id) {
@@ -152,7 +160,7 @@ class SubjectController {
             ErrorHandler::setError('delete', $e->getMessage());
         }
         
-        header('Location: /admin/subjects');
+        header('Location: ' . url('admin/subjects'));
         exit;
     }
 } 
