@@ -43,14 +43,14 @@ class PupilController {
                 'class' => SanitizationHelper::sanitize($_POST['class'])
             ];
 
-            // validating the data
+            // Update validation rules to use class keys
             $rules = [
                 'first_name' => ['required', ['min', 2], ['max', 50]],
                 'last_name' => ['required', ['min', 2], ['max', 50]],
                 'date_of_birth' => ['required', 'date'],
                 'gender' => ['required', ['in', ['M', 'F']]],
                 'parent_id' => ['required', 'exists:parents,parent_id'],
-                'class' => ['required', ['in', array_keys($this->pupil->getClassList())]]
+                'class' => ['required', ['in', array_keys($classList)]] // Use class keys for validation
             ];
 
             // if the data is valid, create the pupil

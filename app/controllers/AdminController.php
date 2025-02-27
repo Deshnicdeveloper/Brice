@@ -493,6 +493,69 @@ class AdminController {
         require __DIR__ . '/../views/admin/parents/add.php';
     }
 
+    public function editParent($id) {
+        AuthHelper::requireRole('admin');
+        $errors = [];
+        
+        $parentModel = new \App\Models\ParentModel();
+        $parent = $parentModel->getParentById($id);
+        
+        if (!$parent) {
+            header('Location: ' . url('admin/parents'));
+            exit;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = [
+                'username' => $_POST['username'],
+                'email' => $_POST['email'],
+                'phone' => $_POST['phone'],
+                'status' => $_POST['status']
+            ];
+
+            try {
+                if ($parentModel->updateParent($id, $data)) {
+                    header('Location: ' . url('admin/parents'));
+                    exit;
+                }
+            } catch (\PDOException $e) {
+                $errors[] = "Failed to update parent. Please try again.";
+            }
+        }
+        
+        require __DIR__ . '/../views/admin/parents/edit.php';
+    }
+
+    public function viewParent($id) {
+        AuthHelper::requireRole('admin');
+        
+        try {
+            $parentModel = new \App\Models\ParentModel();
+            $parent = $parentModel->getParentById($id);
+            
+            if (!$parent) {
+                ErrorHandler::setError('view', 'Parent not found');
+                header('Location: ' . url('admin/parents'));
+                exit;
+            }
+            
+            // Get all pupils registered under this parent
+            $pupilModel = new \App\Models\Pupil();
+            $pupils = $pupilModel->getPupilsByParentId($id);
+            
+            require __DIR__ . '/../views/admin/parents/view.php';
+            
+        } catch (\PDOException $e) {
+            ErrorHandler::logError("Failed to load parent details", [
+                'error' => $e->getMessage(),
+                'parent_id' => $id
+            ]);
+            ErrorHandler::setError('view', 'Failed to load parent details');
+            header('Location: ' . url('admin/parents'));
+            exit;
+        }
+    }
+
     public function viewPupil($id) {
         AuthHelper::requireRole('admin');
         
@@ -751,6 +814,71 @@ class AdminController {
             ]);
             $error = "Failed to load report cards";
             require __DIR__ . '/../views/admin/report-cards/index.php';
+        }
+    }
+
+    public function classRoster() {
+        AuthHelper::requireRole('admin');
+        
+        try {
+            // Get class list
+            $pupilModel = new \App\Models\Pupil();
+            $classList = $pupilModel->getClassList();
+            
+            // Get selected class from query parameter or default to first class
+            $selectedClass = $_GET['class'] ?? array_key_first($classList);
+            
+            // Get current marking period
+            $markingPeriod = new \App\Models\MarkingPeriod();
+            $currentPeriod = $markingPeriod->getCurrentPeriod();
+            
+            // Get all active pupils in the selected class
+            $pupils = $pupilModel->getActiveStudentsByClass($selectedClass);
+            
+            // For each pupil, get their attendance statistics and academic performance
+            foreach ($pupils as &$pupil) {
+                // Get attendance statistics
+                $attendance = (new \App\Models\Attendance())->getAttendanceStatistics(
+                    $pupil['pupil_id'],
+                    $currentPeriod['term']
+                );
+                $pupil['attendance'] = $attendance;
+                
+                // Get academic performance
+                $results = (new \App\Models\Result())->getPupilResults(
+                    $pupil['pupil_id'],
+                    $currentPeriod['academic_year'],
+                    $currentPeriod['term']
+                );
+                
+                // Calculate term average
+                $totalWeightedMarks = 0;
+                $totalCoefficients = 0;
+                foreach ($results as $result) {
+                    $average = ($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3;
+                    $totalWeightedMarks += ($average * $result['coefficient']);
+                    $totalCoefficients += $result['coefficient'];
+                }
+                
+                $pupil['term_average'] = $totalCoefficients > 0 ? 
+                    number_format($totalWeightedMarks / $totalCoefficients, 2) : 'N/A';
+                
+                // Get pupil's position
+                $pupil['position'] = (new \App\Models\Result())->getPupilPosition(
+                    $pupil['pupil_id'],
+                    $selectedClass,
+                    $currentPeriod['academic_year'],
+                    $currentPeriod['term']
+                );
+            }
+            
+            require __DIR__ . '/../views/admin/class-roster.php';
+        } catch (\Exception $e) {
+            ErrorHandler::logError("Failed to load class roster", [
+                'error' => $e->getMessage()
+            ]);
+            $error = "Failed to load class roster";
+            require __DIR__ . '/../views/admin/class-roster.php';
         }
     }
 } 

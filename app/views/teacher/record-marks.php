@@ -7,7 +7,7 @@ ob_start();
     <div class="flex justify-between items-center mb-6">
         <div>
             <h2 class="text-2xl font-bold"><?= htmlspecialchars($subject['name']) ?></h2>
-            <p class="text-gray-600">Class: <?= htmlspecialchars($class) ?></p>
+            <p class="text-gray-600">Class: <?= htmlspecialchars($assignedClass) ?></p>
         </div>
         <a href="<?= url('teacher/dashboard') ?>" 
            class="text-blue-600 hover:text-blue-900">← Back to Dashboard</a>
@@ -26,21 +26,19 @@ ob_start();
         </div>
     <?php endif; ?>
 
-    <?php if (!empty($currentPeriod)): ?>
-        <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
-            <p>Current Period: Term <?= htmlspecialchars($currentPeriod['term']) ?>, 
-               Sequence <?= htmlspecialchars($currentPeriod['sequence']) ?></p>
-            <p class="text-sm">
-                (<?= htmlspecialchars($currentPeriod['start_date']) ?> to 
-                <?= htmlspecialchars($currentPeriod['end_date']) ?>)
-            </p>
+    <?php if (isset($_SESSION['error'])): ?>
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <?= htmlspecialchars($_SESSION['error']) ?>
+            <?php unset($_SESSION['error']); ?>
         </div>
+    <?php endif; ?>
 
-        <form method="POST" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-            <input type="hidden" name="subject_id" value="<?= htmlspecialchars($subject['subject_id']) ?>">
-            <input type="hidden" name="academic_year" value="<?= htmlspecialchars($currentPeriod['academic_year']) ?>">
-            <input type="hidden" name="term" value="<?= htmlspecialchars($currentPeriod['term']) ?>">
+    <form method="POST" action="<?= url('teacher/record-marks/' . $subject['subject_id']) ?>">
+        <input type="hidden" name="subject_id" value="<?= $subject['subject_id'] ?>">
+        <input type="hidden" name="academic_year" value="<?= $currentPeriod['academic_year'] ?>">
+        <input type="hidden" name="term" value="<?= $currentPeriod['term'] ?>">
 
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -92,15 +90,15 @@ ob_start();
                 </table>
             </div>
 
-            <div class="mt-6 flex justify-end">
+            <div class="px-6 py-4 bg-gray-50">
                 <button type="submit" 
                         class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
                         <?= !$markingPeriod->canTeacherRecord() ? 'disabled' : '' ?>>
                     Save Marks
                 </button>
             </div>
-        </form>
-    <?php endif; ?>
+        </div>
+    </form>
 </div>
 
 <?php

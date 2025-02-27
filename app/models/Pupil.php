@@ -48,8 +48,9 @@ class Pupil {
             // Generate matricule
             $matricule = 'PUP' . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
-             // Convert class ID to class name
-            $data['class'] = $classList[$data['class']] ?? $data['class']; 
+            // Get class list and convert class key to actual class name
+            $classList = $this->getClassList();
+            $className = $classList[$data['class']] ?? $data['class'];
             
             $sql = "INSERT INTO pupils (matricule, first_name, last_name, date_of_birth, 
                                       gender, parent_id, class, admission_date, status) 
@@ -63,7 +64,7 @@ class Pupil {
                 $data['date_of_birth'],
                 $data['gender'],
                 $data['parent_id'],
-                $data['class']
+                $className  // Store the actual class name
             ]);
 
             if ($result) {
@@ -158,14 +159,14 @@ class Pupil {
                 $stmt = $this->db->query($sql);
                 return $stmt->fetchAll(\PDO::FETCH_COLUMN);
             } else {
-                // For enrollment - return all possible classes
+                // For enrollment - return all possible classes as associative array
                 return [
-                    'Class 1',
-                    'Class 2',
-                    'Class 3',
-                    'Class 4',
-                    'Class 5',
-                    'Class 6'
+                    'class1' => 'Class1',
+                    'class2' => 'Class2',
+                    'class3' => 'Class3',
+                    'class4' => 'Class4',
+                    'class5' => 'Class5',
+                    'class6' => 'Class6'
                 ];
             }
         } catch (\PDOException $e) {
@@ -226,6 +227,21 @@ class Pupil {
             return (int)$result['count'];
         } catch (\PDOException $e) {
             ErrorHandler::logError("Database error in getClassCount: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function getPupilsByParentId($parentId) {
+        try {
+            $sql = "SELECT * FROM pupils WHERE parent_id = ? ORDER BY class ASC, first_name ASC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$parentId]);
+            return $stmt->fetchAll();
+        } catch (\PDOException $e) {
+            ErrorHandler::logError("Failed to get pupils by parent ID", [
+                'error' => $e->getMessage(),
+                'parent_id' => $parentId
+            ]);
             throw $e;
         }
     }

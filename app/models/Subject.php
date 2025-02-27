@@ -41,6 +41,8 @@ class Subject {
 
     public function getSubjectById($id) {
         try {
+            ErrorHandler::logError("Debug - Getting subject by ID: " . $id);
+            
             $sql = "SELECT subject_id, name, code, class, coefficient, category 
                     FROM subjects 
                     WHERE subject_id = ? 
@@ -52,9 +54,11 @@ class Subject {
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             
             if (!$result) {
-                throw new \Exception("Subject with ID {$id} not found");
+                ErrorHandler::logError("Debug - No subject found with ID: " . $id);
+                return null;
             }
             
+            ErrorHandler::logError("Debug - Found subject: " . json_encode($result));
             return $result;
         } catch (\PDOException $e) {
             ErrorHandler::logError("Database error in getSubjectById", [

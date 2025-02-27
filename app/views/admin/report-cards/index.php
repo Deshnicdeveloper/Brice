@@ -34,35 +34,7 @@ ob_start();
             </div>
 
             <!-- Academic Year Selection -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Academic Year</label>
-                <select name="academic_year" 
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                    <?php 
-                    $currentYear = date('Y');
-                    for ($year = $currentYear; $year >= $currentYear - 5; $year--): 
-                        $academicYearStr = $year . '-' . ($year + 1);
-                    ?>
-                        <option value="<?= $academicYearStr ?>" 
-                                <?= ($academicYear ?? $currentYear) == $academicYearStr ? 'selected' : '' ?>>
-                            <?= $academicYearStr ?>
-                        </option>
-                    <?php endfor; ?>
-                </select>
-            </div>
-
-            <!-- Term Selection -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Term</label>
-                <select name="term" 
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                    <?php for ($i = 1; $i <= 3; $i++): ?>
-                        <option value="<?= $i ?>" <?= ($term ?? 1) == $i ? 'selected' : '' ?>>
-                            Term <?= $i ?>
-                        </option>
-                    <?php endfor; ?>
-                </select>
-            </div>
+            
 
             <!-- Filter Button -->
             <div class="flex items-end">
@@ -94,12 +66,6 @@ ob_start();
                                 Student Name
                             </th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Term Average
-                            </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Position
-                            </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Status
                             </th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -115,14 +81,6 @@ ob_start();
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <?= htmlspecialchars($pupil['first_name'] . ' ' . $pupil['last_name']) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                    <span class="<?= ($pupil['total_average'] ?? 0) < 10 ? 'text-red-600' : 'text-blue-600' ?> font-medium">
-                                        <?= number_format($pupil['total_average'] ?? 0, 2) ?>
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
-                                    <?= $pupil['rank'] ?? 'N/A' ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 

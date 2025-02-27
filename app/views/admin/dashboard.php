@@ -41,14 +41,11 @@ ob_start();
     <div class="bg-white p-6 rounded-lg shadow">
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h3>
         <div class="space-y-4">
-            <a href="/admin/teachers/new" class="block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            <a href="/Brice/admin/teachers/add" class="block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                 Add New Teacher
             </a>
-            <a href="/admin/pupils/new" class="block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            <a href="<?= url('admin/pupils/add') ?>" class="block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                 Register New Pupil
-            </a>
-            <a href="/admin/results/generate" class="block bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
-                Generate Report Cards
             </a>
         </div>
     </div>

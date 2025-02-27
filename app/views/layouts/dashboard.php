@@ -18,7 +18,9 @@
         </div>
         
         <nav class="mt-8">
-            <?php include __DIR__ . "/../partials/nav_{$_SESSION['user_type']}.php"; ?>
+            <?php if (isset($_SESSION['user_type'])): ?>
+                <?php include __DIR__ . "/../partials/nav_{$_SESSION['user_type']}.php"; ?>
+            <?php endif; ?>
             <a href="<?= url('admin/marking-periods') ?>" 
                class="<?= str_contains($_SERVER['REQUEST_URI'], 'marking-periods') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' ?> 
                px-3 py-2 rounded-md text-sm font-medium">

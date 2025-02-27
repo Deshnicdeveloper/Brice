@@ -31,7 +31,7 @@ ob_start();
                     </p>
                 </div>
                 <div class="px-6 py-4 bg-gray-50">
-                    <a href="<?= url('teacher/record-marks/' . $subject['subject_id'] . '/' . $assignedClass) ?>" 
+                    <a href="<?= url('teacher/record-marks/' . $subject['subject_id']) ?>" 
                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 inline-block">
                         Record Marks
                     </a>

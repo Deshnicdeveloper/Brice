@@ -10,7 +10,7 @@ ob_start();
             <div class="max-w-md mx-auto">
                 <div class="divide-y divide-gray-200">
                     <div class="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
-                        <h1 class="text-3xl font-extrabold text-center mb-8">School Management System</h1>
+                        <h1 class="text-3xl font-extrabold text-center mb-8">EDUCARE NURSERY AND PRIMARY SCHOOL</h1>
                         
                         <div class="space-y-4">
                             <a href="<?= url('login?role=admin') ?>" 
@@ -23,10 +23,6 @@ ob_start();
                                 Login as Teacher
                             </a>
                             
-                            <a href="<?= url('login?role=parent') ?>" 
-                               class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                                Login as Parent
-                            </a>
                         </div>
                     </div>
                 </div>

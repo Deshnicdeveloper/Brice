@@ -8,6 +8,13 @@ ob_start();
         <h2 class="text-2xl font-bold">Welcome, <?= htmlspecialchars($_SESSION['user_name']) ?></h2>
     </div>
 
+    <div class="mb-6">
+        <a href="<?= url('teacher/class-roster') ?>" 
+           class="inline-block bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
+            View Class Roster
+        </a>
+    </div>
+
     <?php if (!empty($currentPeriod)): ?>
         <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
             <p>Current Marking Period: 

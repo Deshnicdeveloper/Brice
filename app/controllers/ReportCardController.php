@@ -40,7 +40,28 @@ class ReportCardController {
             $pupils = [];
             
             if ($class) {
-                $pupils = $this->pupil->getActiveStudentsByClass($class);
+                // Get pupils with their term averages and positions directly from results table
+                $sql = "SELECT p.*, 
+                       AVG(r.term_average) as term_average,
+                       MIN(r.ranking) as position
+                       FROM pupils p
+                       LEFT JOIN results r ON p.pupil_id = r.pupil_id 
+                       AND r.academic_year = ? AND r.term = ?
+                       WHERE p.class = ? AND p.status = 'active'
+                       GROUP BY p.pupil_id
+                       ORDER BY term_average DESC";
+                
+                try {
+                    $db = \App\Config\Database::getInstance()->getConnection();
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute([$academicYear, $term, $class]);
+                    $pupils = $stmt->fetchAll();
+                } catch (\PDOException $e) {
+                    ErrorHandler::logError("Failed to fetch pupils with results", [
+                        'error' => $e->getMessage()
+                    ]);
+                    throw $e;
+                }
             }
             
             require __DIR__ . '/../views/admin/report-cards/index.php';

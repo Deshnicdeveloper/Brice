@@ -16,6 +16,7 @@ use App\Controllers\ApiController;
 use App\Controllers\SubjectController;
 use App\Controllers\ReportCardController;
 use App\Controllers\TeacherController;
+use App\Controllers\AttendanceController;
 
 // Add this near the top, after require_once autoload
 session_start();
@@ -73,6 +74,9 @@ try {
         case '/admin/dashboard':
             $admin->dashboard();
             break;
+        case '/admin/class-roster':
+            $admin->classRoster();
+            break;
         case '/admin/teachers':
             $admin->teachers();
             break;
@@ -95,6 +99,18 @@ try {
         case '/admin/pupils/add':
             $admin->addPupil();
             break;
+        case '/admin/parents':
+            $admin->parents();
+            break;
+        case '/admin/parents/add':
+            $admin->addParent();
+            break;
+        case (preg_match('/^\/admin\/parents\/edit\/(\d+)$/', $request, $matches) ? true : false):
+            $admin->editParent($matches[1]);
+            break;
+        case (preg_match('/^\/admin\/parents\/view\/(\d+)$/', $request, $matches) ? true : false):
+            $admin->viewParent($matches[1]);
+            break;
         case '/admin/subjects':
             $subject->index();
             break;
@@ -107,12 +123,6 @@ try {
         case (preg_match('/^\/admin\/subjects\/delete\/(\d+)$/', $request, $matches) ? true : false):
             $subject = new SubjectController();
             $subject->delete($matches[1]);
-            break;
-        case '/admin/parents':
-            $admin->parents();
-            break;
-        case '/admin/parents/add':
-            $admin->addParent();
             break;
         case '/admin/settings':
             $admin->settings();
@@ -165,8 +175,14 @@ try {
         case '/teacher/dashboard':
             $teacher->index();
             break;
+        case '/teacher/class-roster':
+            $teacher->classRoster();
+            break;
         case '/teacher/record-marks':
             $teacher->recordMarks();
+            break;
+        case (preg_match('/^\/teacher\/record-marks\/(\d+)$/', $request, $matches) ? true : false):
+            $teacher->recordMarks($matches[1]);
             break;
         case (preg_match('/^\/teacher\/record-marks\/(\d+)\/([^\/]+)$/', $request, $matches) ? true : false):
             $teacher->recordMarks($matches[1], $matches[2]);
@@ -182,6 +198,15 @@ try {
         case (preg_match('/^\/report-card\/print\/(\d+)\/(\d+)$/', $request, $matches) ? true : false):
             $reportCard = new ReportCardController();
             $reportCard->print($matches[1], $matches[2]);
+            break;
+        case '/attendance':
+            (new AttendanceController())->index();
+            break;
+        case (preg_match('/^\/attendance\/record$/', $request) ? true : false):
+            (new AttendanceController())->record();
+            break;
+        case (preg_match('/^\/attendance\/view\/(\d+)$/', $request, $matches) ? true : false):
+            (new AttendanceController())->viewPupilAttendance($matches[1]);
             break;
         default:
             http_response_code(404);

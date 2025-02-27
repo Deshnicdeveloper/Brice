@@ -31,4 +31,22 @@ class AuthHelper {
             exit;
         }
     }
+
+    public static function getRole() {
+        return $_SESSION['user_type'] ?? null;
+    }
+
+    public static function getTeacherClass() {
+        if (self::getRole() !== 'teacher') {
+            return null;
+        }
+        return $_SESSION['assigned_class'] ?? null;
+    }
+
+    public static function getParentPupils() {
+        if (self::getRole() !== 'parent') {
+            return [];
+        }
+        return $_SESSION['pupil_ids'] ?? [];
+    }
 } 

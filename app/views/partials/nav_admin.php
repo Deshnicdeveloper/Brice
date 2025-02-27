@@ -2,6 +2,7 @@
     <a href="<?= url('admin/dashboard') ?>" class="block px-4 py-2 hover:bg-blue-700">Dashboard</a>
     <a href="<?= url('admin/teachers') ?>" class="block px-4 py-2 hover:bg-blue-700">Teachers</a>
     <a href="<?= url('admin/pupils') ?>" class="block px-4 py-2 hover:bg-blue-700">Pupils</a>
+    <a href="<?= url('admin/class-roster') ?>" class="block px-4 py-2 hover:bg-blue-700">Class Roster</a>
     <a href="<?= url('admin/parents') ?>" class="block px-4 py-2 hover:bg-blue-700">Parents</a>
     <a href="<?= url('admin/subjects') ?>" class="block px-4 py-2 hover:bg-blue-700">Subjects</a>
     <a href="<?= url('admin/report-cards') ?>" class="block px-4 py-2 hover:bg-blue-700">Report Cards</a>

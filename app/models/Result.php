@@ -132,57 +132,98 @@ class Result {
         }
     }
 
-    public function saveResults($marks) {
+    public function saveResults($results) {
         try {
             $this->db->beginTransaction();
-            
+
             $sql = "INSERT INTO results (
                         pupil_id, subject_id, academic_year, term,
                         first_sequence_marks, second_sequence_marks, exam_marks,
-                        total_marks, term_average, teacher_comment
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE 
+                        teacher_comment
+                    ) VALUES (
+                        :pupil_id, :subject_id, :academic_year, :term,
+                        :first_sequence_marks, :second_sequence_marks, :exam_marks,
+                        :teacher_comment
+                    ) ON DUPLICATE KEY UPDATE
                         first_sequence_marks = VALUES(first_sequence_marks),
                         second_sequence_marks = VALUES(second_sequence_marks),
                         exam_marks = VALUES(exam_marks),
-                        total_marks = VALUES(total_marks),
-                        term_average = VALUES(term_average),
                         teacher_comment = VALUES(teacher_comment)";
             
             $stmt = $this->db->prepare($sql);
             
-            foreach ($marks as $mark) {
-                // Calculate total and average
-                $total = array_sum([
-                    $mark['first_sequence_marks'] ?? 0,
-                    $mark['second_sequence_marks'] ?? 0,
-                    $mark['exam_marks'] ?? 0
-                ]);
-                
-                $average = $total / 3; // Average of all marks
-                
+            foreach ($results as $result) {
                 $stmt->execute([
-                    $mark['pupil_id'],
-                    $mark['subject_id'],
-                    $mark['academic_year'],
-                    $mark['term'],
-                    $mark['first_sequence_marks'],
-                    $mark['second_sequence_marks'],
-                    $mark['exam_marks'],
-                    $total,
-                    $average,
-                    $mark['teacher_comment'] ?? null
+                    ':pupil_id' => $result['pupil_id'],
+                    ':subject_id' => $result['subject_id'],
+                    ':academic_year' => $result['academic_year'],
+                    ':term' => $result['term'],
+                    ':first_sequence_marks' => $result['first_sequence_marks'],
+                    ':second_sequence_marks' => $result['second_sequence_marks'],
+                    ':exam_marks' => $result['exam_marks'],
+                    ':teacher_comment' => $result['teacher_comment']
                 ]);
-                
-                // For debugging
-                error_log("Saving marks for pupil: {$mark['pupil_id']}, subject: {$mark['subject_id']}");
             }
-            
+
+            // After saving all results, update term averages and rankings
+            $this->updateTermAverages(
+                $results[0]['academic_year'],
+                $results[0]['term']
+            );
+
             $this->db->commit();
             return true;
         } catch (\PDOException $e) {
             $this->db->rollBack();
-            ErrorHandler::logError("Database error in saveResults: " . $e->getMessage());
+            ErrorHandler::logError("Database error in saveResults: " . $e->getMessage(), [
+                'results' => $results
+            ]);
+            throw $e;
+        }
+    }
+
+    private function updateTermAverages($academicYear, $term) {
+        try {
+            // First, calculate and update term averages for each pupil
+            $sql = "UPDATE results r1
+                    JOIN (
+                        SELECT r.pupil_id,
+                               AVG((COALESCE(r.first_sequence_marks, 0) + 
+                                   COALESCE(r.second_sequence_marks, 0) + 
+                                   COALESCE(r.exam_marks, 0)) / 3 * s.coefficient) 
+                                   / SUM(s.coefficient) as term_average
+                        FROM results r
+                        JOIN subjects s ON r.subject_id = s.subject_id
+                        WHERE r.academic_year = ? AND r.term = ?
+                        GROUP BY r.pupil_id
+                    ) avg_marks ON r1.pupil_id = avg_marks.pupil_id
+                    SET r1.term_average = avg_marks.term_average
+                    WHERE r1.academic_year = ? AND r1.term = ?";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$academicYear, $term, $academicYear, $term]);
+
+            // Then, update rankings within each class
+            $sql = "UPDATE results r1
+                    JOIN (
+                        SELECT r.pupil_id,
+                               RANK() OVER (
+                                   PARTITION BY p.class 
+                                   ORDER BY r.term_average DESC
+                               ) as ranking
+                        FROM results r
+                        JOIN pupils p ON r.pupil_id = p.pupil_id
+                        WHERE r.academic_year = ? AND r.term = ?
+                    ) rankings ON r1.pupil_id = rankings.pupil_id
+                    SET r1.ranking = rankings.ranking
+                    WHERE r1.academic_year = ? AND r1.term = ?";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$academicYear, $term, $academicYear, $term]);
+
+            return true;
+        } catch (\PDOException $e) {
+            ErrorHandler::logError("Database error in updateTermAverages: " . $e->getMessage());
             throw $e;
         }
     }

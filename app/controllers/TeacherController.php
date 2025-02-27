@@ -47,16 +47,86 @@ class TeacherController {
         }
     }
 
-    public function recordMarks($subjectId = null, $class = null) {
+    public function classRoster() {
         AuthHelper::requireRole('teacher');
         
         try {
             $teacherId = $_SESSION['user_id'];
             $teacherInfo = $this->teacher->getTeacherById($teacherId);
             $assignedClass = $teacherInfo['assigned_class'];
+            
+            // Get all active pupils in the class
+            $pupils = $this->pupil->getActiveStudentsByClass($assignedClass);
+            
+            // Get current marking period
+            $currentPeriod = $this->markingPeriod->getCurrentPeriod();
+            
+            // For each pupil, get their attendance statistics and academic performance
+            foreach ($pupils as &$pupil) {
+                // Get attendance statistics
+                $attendance = (new \App\Models\Attendance())->getAttendanceStatistics(
+                    $pupil['pupil_id'],
+                    $currentPeriod['term']
+                );
+                $pupil['attendance'] = $attendance;
+                
+                // Get academic performance
+                $results = $this->result->getPupilResults(
+                    $pupil['pupil_id'],
+                    $currentPeriod['academic_year'],
+                    $currentPeriod['term']
+                );
+                
+                // Calculate term average
+                $totalWeightedMarks = 0;
+                $totalCoefficients = 0;
+                foreach ($results as $result) {
+                    $average = ($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3;
+                    $totalWeightedMarks += ($average * $result['coefficient']);
+                    $totalCoefficients += $result['coefficient'];
+                }
+                
+                $pupil['term_average'] = $totalCoefficients > 0 ? 
+                    number_format($totalWeightedMarks / $totalCoefficients, 2) : 'N/A';
+                
+                // Get pupil's position
+                $pupil['position'] = $this->result->getPupilPosition(
+                    $pupil['pupil_id'],
+                    $assignedClass,
+                    $currentPeriod['academic_year'],
+                    $currentPeriod['term']
+                );
+            }
+            
+            require __DIR__ . '/../views/teacher/class-roster.php';
+        } catch (\Exception $e) {
+            ErrorHandler::logError("Failed to load class roster", [
+                'error' => $e->getMessage()
+            ]);
+            $error = "Failed to load class roster";
+            require __DIR__ . '/../views/teacher/class-roster.php';
+        }
+    }
+
+    public function recordMarks($subjectId = null, $class = null) {
+        AuthHelper::requireRole('teacher');
+        
+        try {
+            $teacherId = $_SESSION['user_id'];
+            ErrorHandler::logError("Debug - Teacher ID: " . $teacherId);
+            
+            $teacherInfo = $this->teacher->getTeacherById($teacherId);
+            if (!$teacherInfo) {
+                ErrorHandler::logError("Debug - Teacher not found: " . $teacherId);
+                throw new \Exception('Teacher information not found');
+            }
+            
+            $assignedClass = $teacherInfo['assigned_class'];
+            ErrorHandler::logError("Debug - Assigned Class: " . $assignedClass);
 
             // If no subject ID is provided, show the list of subjects for teacher's class
             if ($subjectId === null) {
+                ErrorHandler::logError("Debug - No subject ID provided, showing subject list");
                 $subjects = $this->subject->getSubjectsByClass($assignedClass);
                 $currentPeriod = $this->markingPeriod->getCurrentPeriod();
                 
@@ -64,17 +134,30 @@ class TeacherController {
                 return;
             }
 
-            // Check if marking period is active
-            if (!$this->markingPeriod->canTeacherRecord()) {
-                ErrorHandler::setError('record', 'Marking period is not active');
+            ErrorHandler::logError("Debug - Subject ID provided: " . $subjectId);
+
+            // Verify that the subject exists
+            $subject = $this->subject->getSubjectById($subjectId);
+            if (!$subject) {
+                ErrorHandler::logError("Debug - Subject not found: " . $subjectId);
+                $_SESSION['error'] = 'Subject not found';
                 header('Location: ' . url('teacher/record-marks'));
                 exit;
             }
 
+            ErrorHandler::logError("Debug - Subject found: " . json_encode($subject));
+
             // Verify that the subject belongs to teacher's assigned class
-            $subject = $this->subject->getSubjectById($subjectId);
             if ($subject['class'] !== $assignedClass) {
-                ErrorHandler::setError('record', 'You are not authorized to record marks for this class');
+                ErrorHandler::logError("Debug - Subject class mismatch: Subject class = " . $subject['class'] . ", Teacher class = " . $assignedClass);
+                $_SESSION['error'] = 'You are not authorized to record marks for this class';
+                header('Location: ' . url('teacher/record-marks'));
+                exit;
+            }
+
+            // Check if marking period is active
+            if (!$this->markingPeriod->canTeacherRecord()) {
+                $_SESSION['error'] = 'Marking period is not active';
                 header('Location: ' . url('teacher/record-marks'));
                 exit;
             }
@@ -84,7 +167,51 @@ class TeacherController {
             
             // Handle form submission
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $this->saveMarks($_POST);
+                try {
+                    if (empty($_POST['marks'])) {
+                        throw new \Exception('No marks data provided');
+                    }
+
+                    $marks = [];
+                    foreach ($_POST['marks'] as $pupilId => $data) {
+                        // Validate marks
+                        $firstSequence = isset($data['first_sequence']) ? floatval($data['first_sequence']) : null;
+                        $secondSequence = isset($data['second_sequence']) ? floatval($data['second_sequence']) : null;
+                        $exam = isset($data['exam']) ? floatval($data['exam']) : null;
+
+                        // Validate mark ranges
+                        if (($firstSequence !== null && ($firstSequence < 0 || $firstSequence > 20)) ||
+                            ($secondSequence !== null && ($secondSequence < 0 || $secondSequence > 20)) ||
+                            ($exam !== null && ($exam < 0 || $exam > 20))) {
+                            throw new \Exception('Marks must be between 0 and 20');
+                        }
+
+                        $marks[] = [
+                            'pupil_id' => $pupilId,
+                            'subject_id' => $subjectId,
+                            'academic_year' => $_POST['academic_year'],
+                            'term' => $_POST['term'],
+                            'first_sequence_marks' => $firstSequence,
+                            'second_sequence_marks' => $secondSequence,
+                            'exam_marks' => $exam,
+                            'teacher_comment' => $data['comment'] ?? null
+                        ];
+                    }
+
+                    if ($this->result->saveResults($marks)) {
+                        $_SESSION['success'] = "Marks saved successfully";
+                        header('Location: ' . url('teacher/record-marks/' . $subjectId));
+                        exit;
+                    } else {
+                        throw new \Exception('Failed to save marks');
+                    }
+                } catch (\Exception $e) {
+                    ErrorHandler::logError("Failed to save marks", [
+                        'error' => $e->getMessage(),
+                        'data' => $_POST
+                    ]);
+                    $_SESSION['error'] = "Failed to save marks: " . $e->getMessage();
+                }
             }
 
             // Get existing marks
@@ -95,7 +222,7 @@ class TeacherController {
                 $currentPeriod['term']
             );
             
-            // Pass the markingPeriod instance to the view
+            // Pass the marking period object to the view
             $markingPeriod = $this->markingPeriod;
             
             require __DIR__ . '/../views/teacher/record-marks.php';
@@ -103,36 +230,9 @@ class TeacherController {
             ErrorHandler::logError("Failed to load marks recording page", [
                 'error' => $e->getMessage()
             ]);
+            $_SESSION['error'] = "Failed to load marks recording page: " . $e->getMessage();
             header('Location: ' . url('teacher/dashboard'));
             exit;
-        }
-    }
-
-    private function saveMarks($postData) {
-        try {
-            $marks = [];
-            foreach ($postData['marks'] as $pupilId => $data) {
-                $marks[] = [
-                    'pupil_id' => $pupilId,
-                    'subject_id' => $postData['subject_id'],
-                    'academic_year' => $postData['academic_year'],
-                    'term' => $postData['term'],
-                    'first_sequence_marks' => $data['first_sequence'] ?? null,
-                    'second_sequence_marks' => $data['second_sequence'] ?? null,
-                    'exam_marks' => $data['exam'] ?? null,
-                    'teacher_comment' => $data['comment'] ?? null
-                ];
-            }
-
-            if ($this->result->saveResults($marks)) {
-                ErrorHandler::setSuccess("Marks saved successfully");
-            }
-        } catch (\Exception $e) {
-            ErrorHandler::logError("Failed to save marks", [
-                'error' => $e->getMessage(),
-                'data' => $postData
-            ]);
-            ErrorHandler::setError('save', 'Failed to save marks');
         }
     }
 } 

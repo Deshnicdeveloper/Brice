@@ -63,6 +63,32 @@ class ParentModel {
         }
     }
 
+    public function updateParent($id, $data) {
+        try {
+            $sql = "UPDATE parents SET 
+                    username = ?, 
+                    email = ?, 
+                    phone = ?,
+                    status = ?
+                    WHERE parent_id = ?";
+            
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                $data['username'],
+                $data['email'],
+                $data['phone'],
+                $data['status'],
+                $id
+            ]);
+        } catch (\PDOException $e) {
+            ErrorHandler::logError("Failed to update parent", [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+            throw $e;
+        }
+    }
+
     public function getParentByUsername($username) {
         try {
             $sql = "SELECT * FROM parents WHERE username = ?";
