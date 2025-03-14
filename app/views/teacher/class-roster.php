@@ -8,10 +8,10 @@ ob_start();
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Class Roster - <?= htmlspecialchars($assignedClass) ?></h1>
+                <h1 class="text-2xl font-bold text-gray-800">Class Roster - <?= htmlspecialchars($assignedClass ?? '') ?></h1>
                 <p class="text-gray-600 mt-1">
-                    Term <?= htmlspecialchars($currentPeriod['term']) ?>, 
-                    <?= htmlspecialchars($currentPeriod['academic_year']) ?>
+                    Term <?= htmlspecialchars((string)($currentPeriod['term'] ?? '')) ?>, 
+                    <?= htmlspecialchars((string)($currentPeriod['academic_year'] ?? '')) ?>
                 </p>
             </div>
             <div class="flex space-x-4">

@@ -201,7 +201,7 @@ class Pupil {
             
             // For debugging
             error_log("Fetching pupils for class: $class");
-            $pupils = $stmt->fetchAll();
+            $pupils = $stmt->fetchAll() ?: []; // Return empty array instead of false;
             error_log("Found " . count($pupils) . " pupils");
             
             return $pupils;

@@ -832,8 +832,21 @@ class AdminController {
             $markingPeriod = new \App\Models\MarkingPeriod();
             $currentPeriod = $markingPeriod->getCurrentPeriod();
             
+            // Initialize empty arrays if no data
+            if (!$currentPeriod) {
+                $currentPeriod = [
+                    'term' => null,
+                    'academic_year' => null
+                ];
+            }
+            
             // Get all active pupils in the selected class
             $pupils = $pupilModel->getActiveStudentsByClass($selectedClass);
+            
+            // Ensure pupils is an array
+            if (!is_array($pupils)) {
+                $pupils = [];
+            }
             
             // For each pupil, get their attendance statistics and academic performance
             foreach ($pupils as &$pupil) {
@@ -842,6 +855,15 @@ class AdminController {
                     $pupil['pupil_id'],
                     $currentPeriod['term']
                 );
+                
+                // Initialize attendance if null
+                if (!$attendance || !is_array($attendance)) {
+                    $attendance = [
+                        'present_days' => 0,
+                        'absent_days' => 0,
+                        'late_days' => 0
+                    ];
+                }
                 $pupil['attendance'] = $attendance;
                 
                 // Get academic performance
@@ -851,25 +873,34 @@ class AdminController {
                     $currentPeriod['term']
                 );
                 
+                // Ensure results is an array
+                if (!is_array($results)) {
+                    $results = [];
+                }
+                
                 // Calculate term average
                 $totalWeightedMarks = 0;
                 $totalCoefficients = 0;
                 foreach ($results as $result) {
-                    $average = ($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3;
-                    $totalWeightedMarks += ($average * $result['coefficient']);
-                    $totalCoefficients += $result['coefficient'];
+                    if (isset($result['first_sequence_marks'], $result['second_sequence_marks'], $result['exam_marks'], $result['coefficient'])) {
+                        $average = ($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3;
+                        $totalWeightedMarks += ($average * $result['coefficient']);
+                        $totalCoefficients += $result['coefficient'];
+                    }
                 }
                 
                 $pupil['term_average'] = $totalCoefficients > 0 ? 
                     number_format($totalWeightedMarks / $totalCoefficients, 2) : 'N/A';
                 
                 // Get pupil's position
-                $pupil['position'] = (new \App\Models\Result())->getPupilPosition(
+                $position = (new \App\Models\Result())->getPupilPosition(
                     $pupil['pupil_id'],
                     $selectedClass,
                     $currentPeriod['academic_year'],
                     $currentPeriod['term']
                 );
+                
+                $pupil['position'] = $position ?: 'N/A';
             }
             
             require __DIR__ . '/../views/admin/class-roster.php';
@@ -878,6 +909,13 @@ class AdminController {
                 'error' => $e->getMessage()
             ]);
             $error = "Failed to load class roster";
+            $pupils = [];
+            $classList = [];
+            $selectedClass = null;
+            $currentPeriod = [
+                'term' => null,
+                'academic_year' => null
+            ];
             require __DIR__ . '/../views/admin/class-roster.php';
         }
     }

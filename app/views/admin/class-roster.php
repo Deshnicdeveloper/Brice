@@ -11,8 +11,8 @@ ob_start();
                 <h1 class="text-2xl font-bold text-gray-800">Class Roster</h1>
                 <?php if (!empty($currentPeriod)): ?>
                     <p class="text-gray-600 mt-1">
-                        Term <?= htmlspecialchars($currentPeriod['term']) ?>, 
-                        <?= htmlspecialchars($currentPeriod['academic_year']) ?>
+                        Term <?= htmlspecialchars((string)($currentPeriod['term'] ?? '')) ?>, 
+                        <?= htmlspecialchars((string)($currentPeriod['academic_year'] ?? '')) ?>
                     </p>
                 <?php endif; ?>
             </div>

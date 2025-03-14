@@ -53,49 +53,89 @@ class TeacherController {
         try {
             $teacherId = $_SESSION['user_id'];
             $teacherInfo = $this->teacher->getTeacherById($teacherId);
-            $assignedClass = $teacherInfo['assigned_class'];
+            
+            if (!$teacherInfo || !is_array($teacherInfo)) {
+                throw new \Exception('Teacher information not found');
+            }
+            
+            $assignedClass = $teacherInfo['assigned_class'] ?? null;
+            if (!$assignedClass) {
+                throw new \Exception('No class assigned to teacher');
+            }
             
             // Get all active pupils in the class
             $pupils = $this->pupil->getActiveStudentsByClass($assignedClass);
             
+            // Ensure pupils is an array
+            if (!is_array($pupils)) {
+                $pupils = [];
+            }
+            
             // Get current marking period
             $currentPeriod = $this->markingPeriod->getCurrentPeriod();
+            
+            // Initialize empty arrays if no data
+            if (!$currentPeriod || !is_array($currentPeriod)) {
+                $currentPeriod = [
+                    'term' => null,
+                    'academic_year' => null,
+                    'sequence' => null
+                ];
+            }
             
             // For each pupil, get their attendance statistics and academic performance
             foreach ($pupils as &$pupil) {
                 // Get attendance statistics
                 $attendance = (new \App\Models\Attendance())->getAttendanceStatistics(
-                    $pupil['pupil_id'],
+                    $pupil['pupil_id'] ?? 0,
                     $currentPeriod['term']
                 );
+                
+                // Initialize attendance if null
+                if (!$attendance || !is_array($attendance)) {
+                    $attendance = [
+                        'present_days' => 0,
+                        'absent_days' => 0,
+                        'late_days' => 0
+                    ];
+                }
                 $pupil['attendance'] = $attendance;
                 
                 // Get academic performance
                 $results = $this->result->getPupilResults(
-                    $pupil['pupil_id'],
+                    $pupil['pupil_id'] ?? 0,
                     $currentPeriod['academic_year'],
                     $currentPeriod['term']
                 );
+                
+                // Ensure results is an array
+                if (!is_array($results)) {
+                    $results = [];
+                }
                 
                 // Calculate term average
                 $totalWeightedMarks = 0;
                 $totalCoefficients = 0;
                 foreach ($results as $result) {
-                    $average = ($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3;
-                    $totalWeightedMarks += ($average * $result['coefficient']);
-                    $totalCoefficients += $result['coefficient'];
+                    if (isset($result['first_sequence_marks'], $result['second_sequence_marks'], $result['exam_marks'], $result['coefficient'])) {
+                        $average = ($result['first_sequence_marks'] + $result['second_sequence_marks'] + $result['exam_marks']) / 3;
+                        $totalWeightedMarks += ($average * $result['coefficient']);
+                        $totalCoefficients += $result['coefficient'];
+                    }
                 }
                 
                 $pupil['term_average'] = $totalCoefficients > 0 ? 
                     number_format($totalWeightedMarks / $totalCoefficients, 2) : 'N/A';
                 
                 // Get pupil's position
-                $pupil['position'] = $this->result->getPupilPosition(
-                    $pupil['pupil_id'],
+                $position = $this->result->getPupilPosition(
+                    $pupil['pupil_id'] ?? 0,
                     $assignedClass,
                     $currentPeriod['academic_year'],
                     $currentPeriod['term']
                 );
+                
+                $pupil['position'] = $position ?: 'N/A';
             }
             
             require __DIR__ . '/../views/teacher/class-roster.php';
@@ -104,6 +144,13 @@ class TeacherController {
                 'error' => $e->getMessage()
             ]);
             $error = "Failed to load class roster";
+            $pupils = [];
+            $assignedClass = null;
+            $currentPeriod = [
+                'term' => null,
+                'academic_year' => null,
+                'sequence' => null
+            ];
             require __DIR__ . '/../views/teacher/class-roster.php';
         }
     }
