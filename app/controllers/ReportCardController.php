@@ -303,10 +303,20 @@ class ReportCardController {
         try {
             // Get current period if term not specified
             $currentPeriod = $this->markingPeriod->getCurrentPeriod();
-            if ($term === null) {
-                $term = $currentPeriod['term'];
+            
+            // Initialize default values if $currentPeriod is not valid
+            if (!$currentPeriod || !is_array($currentPeriod)) {
+                $currentPeriod = [
+                    'term' => 1,
+                    'academic_year' => date('Y')
+                ];
             }
-            $academicYear = $currentPeriod['academic_year'];
+            
+            // Use provided term or fallback to current period's term
+            if ($term === null) {
+                $term = $currentPeriod['term'] ?? 1;
+            }
+            $academicYear = $currentPeriod['academic_year'] ?? date('Y');
 
             // Get pupil info
             $pupil = $this->pupil->getPupilById($pupilId);
@@ -316,18 +326,30 @@ class ReportCardController {
 
             // Get all results for the pupil
             $results = $this->result->getPupilResults($pupilId, $academicYear, $term);
+            if (!is_array($results)) {
+                $results = [];
+            }
 
             // Get class statistics
             $classStats = $this->result->getClassStatistics($pupil['class'], $academicYear, $term);
+            if (!is_array($classStats)) {
+                $classStats = [];
+            }
 
             // Get total number of students in class
             $totalStudents = $this->pupil->getClassCount($pupil['class']);
 
             // Get pupil's position in class
             $position = $this->result->getPupilPosition($pupilId, $pupil['class'], $academicYear, $term);
+            if (!$position) {
+                $position = 'N/A';
+            }
 
             // Get teacher's comment
             $teacherComment = $this->result->getTeacherComment($pupilId, $academicYear, $term);
+            if (!$teacherComment) {
+                $teacherComment = '';
+            }
 
             require __DIR__ . '/../views/report-card/view.php';
         } catch (\Exception $e) {
